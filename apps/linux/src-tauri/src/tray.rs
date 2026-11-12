@@ -27,13 +27,13 @@ const QUICKCHAT_SHORTCUT_ID: &str = "quickchat-shortcut";
 const START_ID: &str = "start-gateway";
 const STOP_ID: &str = "stop-gateway";
 const RESTART_ID: &str = "restart-gateway";
-#[cfg(any(target_os = "linux", target_os = "windows", target_os = "macos"))]
+#[cfg(any(target_os = "linux", target_os = "android", target_os = "windows", target_os = "macos"))]
 const ADOPT_RUNTIME_ID: &str = "adopt-bundled-runtime";
 const QUIT_ID: &str = "quit";
 
 pub struct TrayHandles {
     _tray: TrayIcon<tauri::Wry>,
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", target_os = "android"))]
     visible: Mutex<bool>,
     status: MenuItem<tauri::Wry>,
     status_line: Arc<Mutex<StatusLine>>,
@@ -44,7 +44,7 @@ pub struct TrayHandles {
     start: MenuItem<tauri::Wry>,
     stop: MenuItem<tauri::Wry>,
     restart: MenuItem<tauri::Wry>,
-    #[cfg(any(target_os = "linux", target_os = "windows", target_os = "macos"))]
+    #[cfg(any(target_os = "linux", target_os = "android", target_os = "windows", target_os = "macos"))]
     runtime_action: MenuItem<tauri::Wry>,
 }
 
@@ -56,7 +56,7 @@ struct StatusLine {
     stopped: bool,
 }
 
-#[cfg(any(target_os = "linux", test))]
+#[cfg(any(target_os = "linux", target_os = "android", test))]
 fn linux_global_shortcuts_supported(
     session_type: Option<&str>,
     wayland_display: Option<&str>,
@@ -67,7 +67,7 @@ fn linux_global_shortcuts_supported(
 }
 
 pub fn global_shortcuts_supported() -> bool {
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", target_os = "android"))]
     {
         linux_global_shortcuts_supported(
             std::env::var("XDG_SESSION_TYPE").ok().as_deref(),
@@ -75,7 +75,7 @@ pub fn global_shortcuts_supported() -> bool {
             std::env::var("DISPLAY").ok().as_deref(),
         )
     }
-    #[cfg(not(target_os = "linux"))]
+    #[cfg(not(any(target_os = "linux", target_os = "android")))]
     {
         true
     }
@@ -92,7 +92,7 @@ impl StatusLine {
 }
 
 impl TrayHandles {
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", target_os = "android"))]
     pub(crate) fn set_visible(&self, visible: bool) {
         let mut current = self.visible.lock().expect("tray visibility mutex poisoned");
         if *current == visible {
@@ -115,7 +115,7 @@ impl TrayHandles {
         }
         drop(status_line);
         self.refresh_status(self._tray.app_handle());
-        #[cfg(any(target_os = "linux", target_os = "windows", target_os = "macos"))]
+        #[cfg(any(target_os = "linux", target_os = "android", target_os = "windows", target_os = "macos"))]
         {
             let current = crate::bundled_runtime::expected_executable_path().ok();
             let enabled = !crate::test_profile::enabled()
@@ -248,9 +248,9 @@ pub fn build(
         menu_builder
     };
     let menu_builder = menu_builder.separator().items(&[&start, &stop, &restart]);
-    #[cfg(any(target_os = "linux", target_os = "windows", target_os = "macos"))]
+    #[cfg(any(target_os = "linux", target_os = "android", target_os = "windows", target_os = "macos"))]
     let runtime_action = disabled_item(ADOPT_RUNTIME_ID, "Use bundled runtime…")?;
-    #[cfg(any(target_os = "linux", target_os = "windows", target_os = "macos"))]
+    #[cfg(any(target_os = "linux", target_os = "android", target_os = "windows", target_os = "macos"))]
     let menu_builder = menu_builder.item(&runtime_action);
     let menu = menu_builder
         .separator()
@@ -321,7 +321,7 @@ pub fn build(
 
     Ok(TrayHandles {
         _tray: tray,
-        #[cfg(target_os = "linux")]
+        #[cfg(any(target_os = "linux", target_os = "android"))]
         visible: Mutex::new(true),
         status,
         status_line: Arc::new(Mutex::new(StatusLine {
@@ -338,7 +338,7 @@ pub fn build(
         start,
         stop,
         restart,
-        #[cfg(any(target_os = "linux", target_os = "windows", target_os = "macos"))]
+        #[cfg(any(target_os = "linux", target_os = "android", target_os = "windows", target_os = "macos"))]
         runtime_action,
     })
 }
@@ -352,7 +352,7 @@ pub fn show_window(app: &AppHandle) {
 }
 
 pub fn open_dashboard(app: &AppHandle) {
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", target_os = "android"))]
     {
         let current_app = app.clone();
         if let Err(error) = app.run_on_main_thread(move || {
@@ -384,7 +384,7 @@ pub fn open_dashboard(app: &AppHandle) {
             eprintln!("Could not open the dashboard: {error}");
         }
     }
-    #[cfg(not(target_os = "linux"))]
+    #[cfg(not(any(target_os = "linux", target_os = "android")))]
     {
         show_window(app);
         app.state::<GatewayOperationQueue>().submit_connect();
@@ -450,13 +450,13 @@ fn handle_menu(
             };
             app.state::<GatewayOperationQueue>().submit_action(action);
         }
-        #[cfg(any(target_os = "linux", target_os = "windows", target_os = "macos"))]
+        #[cfg(any(target_os = "linux", target_os = "android", target_os = "windows", target_os = "macos"))]
         ADOPT_RUNTIME_ID => confirm_runtime_action(app),
         _ => {}
     }
 }
 
-#[cfg(any(target_os = "linux", target_os = "windows", target_os = "macos"))]
+#[cfg(any(target_os = "linux", target_os = "android", target_os = "windows", target_os = "macos"))]
 pub(crate) fn show_runtime_error(app: &AppHandle, error: &str) {
     let current_app = app.clone();
     let error = error.to_owned();
@@ -474,7 +474,7 @@ pub(crate) fn show_runtime_error(app: &AppHandle, error: &str) {
     });
 }
 
-#[cfg(any(target_os = "linux", target_os = "windows", target_os = "macos"))]
+#[cfg(any(target_os = "linux", target_os = "android", target_os = "windows", target_os = "macos"))]
 fn confirm_runtime_action(app: &AppHandle) {
     use tauri_plugin_dialog::MessageDialogButtons;
     let current_app = app.clone();

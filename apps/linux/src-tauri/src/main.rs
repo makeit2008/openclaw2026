@@ -1,7 +1,7 @@
 mod bundled_runtime;
 mod chrome_setup;
 mod cli;
-#[cfg(target_os = "linux")]
+#[cfg(any(target_os = "linux", target_os = "android"))]
 mod desktop_bridge;
 mod desktop_node;
 mod desktop_node_process;
@@ -12,11 +12,11 @@ mod gateway_control_auth;
 mod gateway_device_identity;
 mod gateway_operation_queue;
 mod gateway_profiles;
-#[cfg(any(target_os = "linux", test))]
+#[cfg(any(target_os = "linux", target_os = "android", test))]
 mod gateway_sleep;
-#[cfg(target_os = "linux")]
+#[cfg(any(target_os = "linux", target_os = "android"))]
 mod gateway_sleep_logind;
-#[cfg(target_os = "linux")]
+#[cfg(any(target_os = "linux", target_os = "android"))]
 mod gateway_sleep_logind_listener;
 #[cfg(test)]
 mod gateway_sleep_tests;
@@ -41,7 +41,7 @@ mod test_profile;
 mod tray;
 mod updater;
 mod window_chrome;
-#[cfg(target_os = "linux")]
+#[cfg(any(target_os = "linux", target_os = "android"))]
 mod window_chrome_linux;
 #[cfg(target_os = "macos")]
 mod window_chrome_macos;
@@ -57,7 +57,7 @@ use std::sync::{mpsc, Arc, Mutex};
 use std::thread;
 use std::time::Duration;
 use tauri::webview::{NewWindowResponse, PageLoadEvent, WebviewBuilder};
-#[cfg(not(target_os = "linux"))]
+#[cfg(not(any(target_os = "linux", target_os = "android")))]
 use tauri::Emitter;
 use tauri::{
     AppHandle, LogicalPosition, Manager, State, Url, Webview, WebviewUrl, WebviewWindowBuilder,
@@ -67,7 +67,7 @@ use tauri_plugin_opener::OpenerExt;
 
 const CONNECTED_WATCH_INTERVAL: Duration = Duration::from_secs(15);
 const RECONNECT_INTERVAL: Duration = Duration::from_secs(3);
-#[cfg(any(target_os = "linux", target_os = "windows", target_os = "macos"))]
+#[cfg(any(target_os = "linux", target_os = "android", target_os = "windows", target_os = "macos"))]
 pub(crate) struct RuntimeAction {
     cli: OpenClawCli,
     observation: runtime_action::Observation,
@@ -416,12 +416,12 @@ struct NavigationState {
     automatic_setup: bool,
     remote_snapshot: Option<GatewaySnapshot>,
     settings_return: Option<SettingsReturn>,
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", target_os = "android"))]
     remote_presentation_generation: Option<u64>,
 }
 
 impl NavigationState {
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", target_os = "android"))]
     fn remote_presentation_is_current(&self) -> bool {
         self.remote_dashboard && self.remote_presentation_generation == Some(self.watch_generation)
     }
@@ -588,7 +588,7 @@ impl NavigationState {
             }
             // A failed replacement is not health evidence for the committed page.
             // Once publication changes its generation, the old handle cannot mask errors.
-            #[cfg(target_os = "linux")]
+            #[cfg(any(target_os = "linux", target_os = "android"))]
             if self.remote_presentation_is_current() {
                 return false;
             }
@@ -736,7 +736,7 @@ impl DesktopState {
         self.with_tray(|tray| tray.refresh_update_action(app));
     }
 
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", target_os = "android"))]
     pub(crate) fn present_remote_dashboard(&self, app: &AppHandle) -> Result<bool, String> {
         if self.is_quitting()
             || app
@@ -773,7 +773,7 @@ impl DesktopState {
 
     pub fn connect(&self, app: &AppHandle, selection: u64) -> Result<GatewaySnapshot, String> {
         let fresh = if cfg!(any(
-            target_os = "linux",
+            any(target_os = "linux", target_os = "android"), target_os = "android",
             target_os = "windows",
             target_os = "macos"
         )) {
@@ -898,7 +898,7 @@ impl DesktopState {
         if test_profile::enabled() {
             test_profile::start(&cli)?;
         }
-        #[cfg(any(target_os = "linux", target_os = "windows", target_os = "macos"))]
+        #[cfg(any(target_os = "linux", target_os = "android", target_os = "windows", target_os = "macos"))]
         let ready = {
             // Startup, app updates, and reconnects only observe the existing service.
             let snapshot = gateway::status(&cli)?;
@@ -918,7 +918,7 @@ impl DesktopState {
             }
             gateway::dashboard(&cli, snapshot)?
         };
-        #[cfg(not(any(target_os = "linux", target_os = "windows", target_os = "macos")))]
+        #[cfg(not(any(target_os = "linux", target_os = "android", target_os = "windows", target_os = "macos")))]
         let ready = gateway::ensure_ready(&cli)?;
         self.finish_local_connection(app, cli, ready, false)
     }
@@ -938,7 +938,7 @@ impl DesktopState {
             .operation
             .lock()
             .map_err(|_| "Installer lock is unavailable.".to_string())?;
-        #[cfg(any(target_os = "linux", target_os = "windows", target_os = "macos"))]
+        #[cfg(any(target_os = "linux", target_os = "android", target_os = "windows", target_os = "macos"))]
         let cli = {
             let runtime = bundled_runtime::seed(app)?;
             let cli = match OpenClawCli::discover() {
@@ -963,7 +963,7 @@ impl DesktopState {
             })?;
             cli
         };
-        #[cfg(not(any(target_os = "linux", target_os = "windows", target_os = "macos")))]
+        #[cfg(not(any(target_os = "linux", target_os = "android", target_os = "windows", target_os = "macos")))]
         let cli = {
             installer::install(app, channel, false)?;
             let cli = OpenClawCli::discover().map_err(|error| {
@@ -1003,10 +1003,10 @@ impl DesktopState {
                     .to_string()
             })?
             .mark_onboarding_pending();
-        #[cfg(any(target_os = "linux", target_os = "windows", target_os = "macos"))]
+        #[cfg(any(target_os = "linux", target_os = "android", target_os = "windows", target_os = "macos"))]
         let readiness =
             gateway::status(&cli).and_then(|snapshot| gateway::dashboard(&cli, snapshot));
-        #[cfg(not(any(target_os = "linux", target_os = "windows", target_os = "macos")))]
+        #[cfg(not(any(target_os = "linux", target_os = "android", target_os = "windows", target_os = "macos")))]
         let readiness = gateway::ensure_ready(&cli);
         let ready = readiness.map_err(|error| {
             format!("OpenClaw is installed, but connecting to the Gateway failed: {error}")
@@ -1043,7 +1043,7 @@ impl DesktopState {
         self.finish_local_connection(app, cli, ready, false)
     }
 
-    #[cfg(any(target_os = "linux", target_os = "windows", target_os = "macos"))]
+    #[cfg(any(target_os = "linux", target_os = "android", target_os = "windows", target_os = "macos"))]
     fn runtime_operation_is_current(&self, app: &AppHandle, selection: u64) -> bool {
         !self.is_quitting()
             && app
@@ -1051,7 +1051,7 @@ impl DesktopState {
                 .selection_is_current(selection)
     }
 
-    #[cfg(any(target_os = "linux", target_os = "windows", target_os = "macos"))]
+    #[cfg(any(target_os = "linux", target_os = "android", target_os = "windows", target_os = "macos"))]
     fn runtime_action(
         &self,
         app: &AppHandle,
@@ -1136,7 +1136,7 @@ impl DesktopState {
             }
             Ok(())
         })?;
-        #[cfg(any(target_os = "linux", target_os = "windows", target_os = "macos"))]
+        #[cfg(any(target_os = "linux", target_os = "android", target_os = "windows", target_os = "macos"))]
         if let Ok(cli) = self.resolve_cli() {
             let snapshot = gateway::status(&cli)?;
             if !snapshot.installed && !snapshot.reachable {
@@ -1390,7 +1390,7 @@ impl DesktopState {
             }
             return Ok(());
         }
-        #[cfg(target_os = "linux")]
+        #[cfg(any(target_os = "linux", target_os = "android"))]
         {
             if !self.is_quitting()
                 && navigation.remote_dashboard
@@ -1452,7 +1452,7 @@ impl DesktopState {
         } else if selected_gateway {
             SettingsReturnTarget::SavedGateway
         } else {
-            #[cfg(target_os = "linux")]
+            #[cfg(any(target_os = "linux", target_os = "android"))]
             let remote_url = navigation
                 .remote_presentation_is_current()
                 .then(|| {
@@ -1461,7 +1461,7 @@ impl DesktopState {
                     })
                 })
                 .transpose()?;
-            #[cfg(not(target_os = "linux"))]
+            #[cfg(not(any(target_os = "linux", target_os = "android")))]
             let remote_url: Option<Url> = None;
             if let Some(url) = remote_url {
                 SettingsReturnTarget::Remote(url)
@@ -1520,14 +1520,14 @@ impl DesktopState {
             }
             SettingsReturnTarget::Local(url) | SettingsReturnTarget::Remote(url) => {
                 if matches!(previous.target, SettingsReturnTarget::Remote(_)) {
-                    #[cfg(target_os = "linux")]
+                    #[cfg(any(target_os = "linux", target_os = "android"))]
                     if !navigation.remote_presentation_is_current() {
                         return Err(
                             "The previous dashboard is unavailable. Retry or edit the connection."
                                 .to_string(),
                         );
                     }
-                    #[cfg(not(target_os = "linux"))]
+                    #[cfg(not(any(target_os = "linux", target_os = "android")))]
                     return Err("The previous dashboard is unavailable.".to_string());
                 }
                 main_window(app)?
@@ -1541,7 +1541,7 @@ impl DesktopState {
         Ok(true)
     }
 
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", target_os = "android"))]
     pub(crate) fn show_desktop_session(
         &self,
         app: &AppHandle,
@@ -1984,7 +1984,7 @@ impl DesktopState {
             }
             return Err(error);
         }
-        #[cfg(target_os = "linux")]
+        #[cfg(any(target_os = "linux", target_os = "android"))]
         if !navigation.remote_dashboard {
             navigation.remote_presentation_generation = None;
         }
@@ -2246,7 +2246,7 @@ mod navigation_tests {
         }
     }
 
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", target_os = "android"))]
     #[test]
     fn desktop_quit_claim_requires_current_route_and_has_one_teardown_owner() {
         let gateway = crate::gateway_ws::GatewayClient::new();
@@ -3224,9 +3224,9 @@ fn replace_main_webview_for_target(
                     }
                 };
                 // Wry can invoke this while the caller still holds navigation guards.
-                #[cfg(target_os = "linux")]
+                #[cfg(any(target_os = "linux", target_os = "android"))]
                 gtk::glib::idle_add_once(on_load);
-                #[cfg(not(target_os = "linux"))]
+                #[cfg(not(any(target_os = "linux", target_os = "android")))]
                 tauri::async_runtime::spawn(async move {
                     let _ = app.run_on_main_thread(on_load);
                 });
@@ -3403,7 +3403,7 @@ fn main() {
     }
     // Xlib requires thread initialization before GTK opens a display. Older
     // libX11 versions do not initialize it automatically for WebKit's threads.
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", target_os = "android"))]
     assert_ne!(
         unsafe { x11::xlib::XInitThreads() },
         0,
@@ -3411,7 +3411,7 @@ fn main() {
     );
 
     // AppIndicator uses the GTK application name for the tray menu heading.
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", target_os = "android"))]
     gtk::glib::set_application_name("OpenClaw");
 
     let global_shortcuts_supported = !test_profile::enabled() && tray::global_shortcuts_supported();
@@ -3470,7 +3470,7 @@ fn main() {
             .to_string_lossy()
             .into_owned();
         let profiles = Arc::new(gateway_profiles::GatewayProfiles::new(&namespace));
-        #[cfg(target_os = "linux")]
+        #[cfg(any(target_os = "linux", target_os = "android"))]
         if let Ok(root) = gateway_windows::profile_browser_root(app.handle()) {
             let profiles = Arc::clone(&profiles);
             // WebKitGTK keeps a data directory in use until exit, so storage of
@@ -3535,7 +3535,7 @@ fn main() {
             app.handle().clone(),
             Arc::clone(&profiles),
         )?);
-        #[cfg(target_os = "linux")]
+        #[cfg(any(target_os = "linux", target_os = "android"))]
         app.manage(gateway_sleep_logind::SleepBridge::start(
             app.handle().clone(),
         ));
@@ -3565,7 +3565,7 @@ fn main() {
                 GatewayOperation::Install(channel) => {
                     operation_state.install_cli(&operation_app, channel, selection)
                 }
-                #[cfg(any(target_os = "linux", target_os = "windows", target_os = "macos"))]
+                #[cfg(any(target_os = "linux", target_os = "android", target_os = "windows", target_os = "macos"))]
                 GatewayOperation::Runtime(action) => {
                     operation_state.runtime_action(&operation_app, action, selection)
                 }
@@ -3578,7 +3578,7 @@ fn main() {
             },
             move |error| match error {
                 GatewayOperationError::Action(_) => error_state.show_error(&error_app),
-                #[cfg(any(target_os = "linux", target_os = "windows", target_os = "macos"))]
+                #[cfg(any(target_os = "linux", target_os = "android", target_os = "windows", target_os = "macos"))]
                 GatewayOperationError::Runtime(error) => {
                     tray::show_runtime_error(&error_app, &error)
                 }
@@ -3591,7 +3591,7 @@ fn main() {
         if let Some(urls) = app.deep_link().get_current()? {
             handle_deep_links(app.handle(), urls);
         }
-        #[cfg(any(target_os = "linux", all(debug_assertions, target_os = "windows")))]
+        #[cfg(any(target_os = "linux", target_os = "android", all(debug_assertions, target_os = "windows")))]
         if let Err(error) = app.deep_link().register_all() {
             eprintln!("Deep-link registration unavailable: {error}");
         }
@@ -3614,7 +3614,7 @@ fn main() {
         app.on_menu_event(|app, event| {
             gateway_windows::handle_menu(app, event.id().as_ref());
         });
-        #[cfg(target_os = "linux")]
+        #[cfg(any(target_os = "linux", target_os = "android"))]
         desktop_bridge::start(app.handle().clone());
         state.start_tunnel_monitor(app.handle().clone());
         // Single-instance admission is complete; Chrome setup never follows a remote dashboard.
@@ -3692,7 +3692,7 @@ fn main() {
                 match event {
                     tauri::WindowEvent::Focused(false) => {
                         // GTK queues focus events; a stale blur must not hide a refocused window.
-                        if cfg!(target_os = "linux") && window.is_focused().unwrap_or(false) {
+                        if cfg!(any(target_os = "linux", target_os = "android")) && window.is_focused().unwrap_or(false) {
                             return;
                         }
                         quickchat::request_hide(window.app_handle());
@@ -3735,12 +3735,12 @@ fn main() {
             if let Some(power) = app.try_state::<keep_awake::KeepAwake>() {
                 power.wait_stopped();
             }
-            #[cfg(target_os = "linux")]
+            #[cfg(any(target_os = "linux", target_os = "android"))]
             if let Some(bridge) = app.try_state::<gateway_sleep_logind::SleepBridge>() {
                 bridge.shutdown();
             }
         }
-        #[cfg(not(target_os = "linux"))]
+        #[cfg(not(any(target_os = "linux", target_os = "android")))]
         let _ = (app, event);
     });
 }

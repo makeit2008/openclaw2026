@@ -458,7 +458,7 @@ fn file_secret(
         {
             return Err(());
         }
-        #[cfg(any(target_os = "linux", target_os = "freebsd"))]
+        #[cfg(any(target_os = "linux", target_os = "android", target_os = "freebsd"))]
         if opened.uid() != unsafe { libc::geteuid() } {
             return Err(());
         }
@@ -1641,7 +1641,7 @@ mod tests {
         }
     }
 
-    #[cfg(any(target_os = "linux", target_os = "freebsd"))]
+    #[cfg(any(target_os = "linux", target_os = "android", target_os = "freebsd"))]
     #[test]
     #[ignore = "requires root in a disposable Linux or FreeBSD guest"]
     fn saved_remote_file_credentials_reject_foreign_owners() {

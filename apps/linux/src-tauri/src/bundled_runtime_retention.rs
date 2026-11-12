@@ -60,7 +60,7 @@ pub(super) fn collect(
     Ok(())
 }
 
-#[cfg(target_os = "linux")]
+#[cfg(any(target_os = "linux", target_os = "android"))]
 fn live_executables(_: &BTreeSet<OsString>) -> RuntimeResult<Vec<PathBuf>> {
     use std::os::unix::fs::MetadataExt;
     let mut paths = Vec::new();
@@ -85,7 +85,7 @@ fn live_executables(_: &BTreeSet<OsString>) -> RuntimeResult<Vec<PathBuf>> {
     Ok(paths)
 }
 
-#[cfg(target_os = "linux")]
+#[cfg(any(target_os = "linux", target_os = "android"))]
 pub(super) fn executable_path(directory: &Path) -> RuntimeResult<Option<PathBuf>> {
     match fs::read_link(directory.join("exe")) {
         Ok(path) => Ok(Some(path)),
@@ -225,7 +225,7 @@ fn live_executables(_: &BTreeSet<OsString>) -> RuntimeResult<Vec<PathBuf>> {
     Ok(paths)
 }
 
-#[cfg(not(any(target_os = "linux", target_os = "windows", target_os = "macos")))]
+#[cfg(not(any(target_os = "linux", target_os = "android", target_os = "windows", target_os = "macos")))]
 fn live_executables(_: &BTreeSet<OsString>) -> RuntimeResult<Vec<PathBuf>> {
     Err("Runtime seed collection is unsupported on this platform.".into())
 }

@@ -1,4 +1,4 @@
-#[cfg(not(any(target_os = "linux", target_os = "macos")))]
+#[cfg(not(any(target_os = "linux", target_os = "android", target_os = "macos")))]
 use super::ensure_ready;
 use crate::cli::OpenClawCli;
 use serde_json::{json, Value};
@@ -78,7 +78,7 @@ fn cli_service_status_lifecycle_contract() {
     // observe a temporary override or share this test's service-call recorder.
     if let Some(root) = std::env::var_os(CHILD) {
         let cli = OpenClawCli::discover().expect("discover isolated fixture CLI");
-        #[cfg(any(target_os = "linux", target_os = "macos"))]
+        #[cfg(any(target_os = "linux", target_os = "android", target_os = "macos"))]
         let result = match super::status(&cli) {
             Ok(snapshot) => json!({
                 "ok": true,
@@ -87,7 +87,7 @@ fn cli_service_status_lifecycle_contract() {
             }),
             Err(error) => json!({"ok": false, "error": error}),
         };
-        #[cfg(not(any(target_os = "linux", target_os = "macos")))]
+        #[cfg(not(any(target_os = "linux", target_os = "android", target_os = "macos")))]
         let result = match ensure_ready(&cli) {
             Ok(ready) => json!({
                 "ok": true,
@@ -290,9 +290,9 @@ fn cli_service_status_lifecycle_contract() {
             .lines()
             .filter(|call| *call != "--version" && *call != "gateway status --json")
             .collect();
-        #[cfg(not(any(target_os = "linux", target_os = "macos")))]
+        #[cfg(not(any(target_os = "linux", target_os = "android", target_os = "macos")))]
         let mut expected_calls = Vec::new();
-        #[cfg(any(target_os = "linux", target_os = "macos"))]
+        #[cfg(any(target_os = "linux", target_os = "android", target_os = "macos"))]
         let expected_calls: Vec<&str> = Vec::new();
         let valid = match expected {
             Expected::Ready {
@@ -301,7 +301,7 @@ fn cli_service_status_lifecycle_contract() {
                 initial_phase,
                 ..
             } => {
-                #[cfg(any(target_os = "linux", target_os = "macos"))]
+                #[cfg(any(target_os = "linux", target_os = "android", target_os = "macos"))]
                 {
                     // Startup and reconnects observe service state; only explicit
                     // setup and user actions may install or start the service.
@@ -310,7 +310,7 @@ fn cli_service_status_lifecycle_contract() {
                         && result["reachable"] == (initial_phase == "connected")
                         && result["phase"] == initial_phase
                 }
-                #[cfg(not(any(target_os = "linux", target_os = "macos")))]
+                #[cfg(not(any(target_os = "linux", target_os = "android", target_os = "macos")))]
                 {
                     let _ = initial_phase;
                     if install {

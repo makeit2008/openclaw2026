@@ -2,7 +2,7 @@ use crate::remote_gateway::{self, RemoteGatewayRequest};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::collections::HashSet;
-#[cfg(any(target_os = "linux", test))]
+#[cfg(any(target_os = "linux", target_os = "android", test))]
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 use zeroize::Zeroizing;
@@ -41,7 +41,7 @@ pub(crate) struct SavedGateway {
 }
 
 impl SavedGateway {
-    #[cfg(any(target_os = "linux", test))]
+    #[cfg(any(target_os = "linux", target_os = "android", test))]
     fn browser_storage_key(&self) -> String {
         digest(&format!(
             "{}\n{}",
@@ -161,7 +161,7 @@ pub(crate) struct GatewayProfiles {
     registry: Mutex<Option<Registry>>,
     // Scopes browser data like the credential record, so named app profiles and
     // debug builds never share a saved Gateway's WebKit storage.
-    #[cfg_attr(not(any(target_os = "linux", test)), allow(dead_code))]
+    #[cfg_attr(not(any(target_os = "linux", target_os = "android", test)), allow(dead_code))]
     browser_scope: String,
 }
 
@@ -178,7 +178,7 @@ impl GatewayProfiles {
     /// Browser storage for one saved Gateway. Renames and credential edits keep
     /// the dashboard's device identity; a different endpoint, or an endpoint
     /// saved again after removal, starts clean.
-    #[cfg(any(target_os = "linux", test))]
+    #[cfg(any(target_os = "linux", target_os = "android", test))]
     pub fn browser_data_dir(&self, root: &Path, id: &str) -> Result<PathBuf, String> {
         let key = self.get(id)?.browser_storage_key();
         Ok(root.join(&self.browser_scope).join(key))
@@ -189,7 +189,7 @@ impl GatewayProfiles {
     /// a session is cleaned up at the next launch. Saved profiles are never
     /// touched, and holding the registry lock keeps a concurrent save from
     /// losing the directory of the profile it adds.
-    #[cfg(any(target_os = "linux", test))]
+    #[cfg(any(target_os = "linux", target_os = "android", test))]
     pub fn prune_browser_data(&self, root: &Path) -> Result<(), String> {
         let scope = root.join(&self.browser_scope);
         // Without saved-Gateway storage there is nothing to prune; skip the

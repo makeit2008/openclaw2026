@@ -913,7 +913,7 @@ mod windows_tests;
 
 #[cfg(all(
     test,
-    any(target_os = "linux", target_os = "windows", target_os = "macos")
+    any(target_os = "linux", target_os = "android", target_os = "windows", target_os = "macos")
 ))]
 #[test]
 fn detached_runtime_action_delivers_the_complete_error_to_its_presenter() {

@@ -1,7 +1,7 @@
 //! Idle inhibition only: never force wake, unlock, or block explicit sleep.
 //! Linux desktop idle inhibition can also keep the display from idling.
 
-#[cfg(target_os = "linux")]
+#[cfg(any(target_os = "linux", target_os = "android"))]
 mod platform {
     use futures_util::StreamExt;
     use std::{collections::HashMap, time::Duration};
@@ -270,7 +270,7 @@ mod platform {
     }
 }
 
-#[cfg(not(any(target_os = "linux", target_os = "macos", target_os = "windows")))]
+#[cfg(not(any(target_os = "linux", target_os = "android", target_os = "macos", target_os = "windows")))]
 mod platform {
     pub struct Inhibitor;
     impl Inhibitor {
@@ -294,7 +294,7 @@ impl Drop for Inhibitor {
         }
         // The dedicated connection scopes the portal request. Disconnect on
         // shutdown/rollback so a failed Close cannot leave a live owner.
-        #[cfg(target_os = "linux")]
+        #[cfg(any(target_os = "linux", target_os = "android"))]
         let _ = tauri::async_runtime::block_on(self.connection.clone().close());
     }
 }

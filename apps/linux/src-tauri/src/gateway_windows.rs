@@ -5,7 +5,7 @@ use crate::native_browser_platform::NavigationEvent;
 use crate::remote_gateway::{self, RemoteGatewayRequest, SshTunnel};
 use serde_json::{json, Value};
 use std::collections::{BTreeMap, HashSet};
-#[cfg(any(target_os = "windows", target_os = "linux", test))]
+#[cfg(any(target_os = "windows", any(target_os = "linux", target_os = "android"), target_os = "android", test))]
 use std::path::PathBuf;
 use std::sync::{Arc, Condvar, Mutex};
 #[cfg(any(target_os = "windows", test))]
@@ -164,7 +164,7 @@ enum SelectionDisposition {
 }
 
 #[derive(Debug, Eq, PartialEq)]
-#[cfg(any(target_os = "linux", test))]
+#[cfg(any(target_os = "linux", target_os = "android", test))]
 enum MainPresentation {
     Preserve,
     ReloadRemotePrimary,
@@ -665,7 +665,7 @@ impl Routing {
         }
     }
 
-    #[cfg(any(target_os = "linux", test))]
+    #[cfg(any(target_os = "linux", target_os = "android", test))]
     fn main_presentation(&self) -> MainPresentation {
         if self.closing
             || self.windows.get("main").is_some_and(|route| {
@@ -1069,7 +1069,7 @@ pub(crate) struct DocumentRegistration {
     pub lifetime: String,
     #[cfg(target_os = "windows")]
     browser_data: Option<Arc<TemporaryBrowserData>>,
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", target_os = "android"))]
     profile_data: Option<PathBuf>,
 }
 
@@ -1124,7 +1124,7 @@ impl DocumentRegistration {
         // A saved Gateway keeps its dashboard storage, and with it the Control
         // UI's paired device identity, across switches and restarts. Native
         // macOS keeps one persistent website data store per saved profile.
-        #[cfg(target_os = "linux")]
+        #[cfg(any(target_os = "linux", target_os = "android"))]
         if let Some(path) = &self.profile_data {
             return builder.incognito(false).data_directory(path.clone());
         }
@@ -1288,7 +1288,7 @@ impl Drop for TemporaryBrowserData {
     }
 }
 
-#[cfg(target_os = "linux")]
+#[cfg(any(target_os = "linux", target_os = "android"))]
 pub(crate) fn profile_browser_root(app: &AppHandle) -> Result<PathBuf, String> {
     app.path()
         .app_local_data_dir()
@@ -1296,7 +1296,7 @@ pub(crate) fn profile_browser_root(app: &AppHandle) -> Result<PathBuf, String> {
         .map_err(|_| "Could not locate saved Gateway browser storage.".to_string())
 }
 
-#[cfg(target_os = "linux")]
+#[cfg(any(target_os = "linux", target_os = "android"))]
 fn private_profile_dir(path: PathBuf) -> Result<PathBuf, String> {
     use std::os::unix::fs::DirBuilderExt;
     std::fs::DirBuilder::new()
@@ -1433,7 +1433,7 @@ impl GatewayWindows {
         })
     }
 
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", target_os = "android"))]
     pub fn present_main_dashboard(&self, app: &AppHandle) -> Result<bool, String> {
         let presentation = self.routing.lock().map_err(|_| STALE)?.main_presentation();
         match presentation {
@@ -1546,7 +1546,7 @@ impl GatewayWindows {
         } else {
             Some(self.profiles.get(target_id)?.revision)
         };
-        #[cfg(target_os = "linux")]
+        #[cfg(any(target_os = "linux", target_os = "android"))]
         let profile_data = match profile_revision {
             Some(_) => Some(private_profile_dir(
                 self.profiles
@@ -1620,7 +1620,7 @@ impl GatewayWindows {
             lifetime,
             #[cfg(target_os = "windows")]
             browser_data,
-            #[cfg(target_os = "linux")]
+            #[cfg(any(target_os = "linux", target_os = "android"))]
             profile_data,
         })
     }

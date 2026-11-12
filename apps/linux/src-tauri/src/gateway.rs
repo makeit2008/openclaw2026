@@ -231,7 +231,7 @@ pub fn status(cli: &OpenClawCli) -> Result<GatewaySnapshot, String> {
     })
 }
 
-#[cfg(not(any(target_os = "linux", target_os = "windows", target_os = "macos")))]
+#[cfg(not(any(target_os = "linux", target_os = "android", target_os = "windows", target_os = "macos")))]
 pub fn ensure_ready(cli: &OpenClawCli) -> Result<ReadyGateway, String> {
     let mut snapshot = status(cli)?;
     if snapshot.reachable {

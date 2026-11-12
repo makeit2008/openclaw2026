@@ -3,9 +3,9 @@ use crate::gateway_device_identity::{
     GatewayAuth, GatewayDeviceIdentity, GatewayDeviceIdentityStore, CLIENT_DEVICE_FAMILY,
     CLIENT_ID, CLIENT_MODE, CLIENT_PLATFORM, CLIENT_ROLE, CLIENT_SCOPES,
 };
-#[cfg(target_os = "linux")]
+#[cfg(any(target_os = "linux", target_os = "android"))]
 use crate::gateway_sleep::GatewaySleepRoute;
-#[cfg(any(target_os = "linux", test))]
+#[cfg(any(target_os = "linux", target_os = "android", test))]
 use crate::gateway_sleep::SleepPrepareOutcome;
 use crate::quickchat::QUICKCHAT_LABEL;
 #[cfg(test)]
@@ -24,7 +24,7 @@ use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::collections::HashMap;
 use std::future::Future;
-#[cfg(any(target_os = "linux", test))]
+#[cfg(any(target_os = "linux", target_os = "android", test))]
 use std::net::IpAddr;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
@@ -47,7 +47,7 @@ const CONNECT_TIMEOUT: Duration = Duration::from_secs(10);
 const HANDSHAKE_TIMEOUT: Duration = Duration::from_secs(5);
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(15);
 const COMMAND_TIMEOUT: Duration = Duration::from_secs(35);
-#[cfg(any(target_os = "linux", test))]
+#[cfg(any(target_os = "linux", target_os = "android", test))]
 const SUSPEND_REQUEST_TIMEOUT: Duration = Duration::from_secs(3);
 const DRIVER_TICK: Duration = Duration::from_secs(1);
 const MAX_RECONNECT_DELAY: Duration = Duration::from_secs(30);
@@ -193,7 +193,7 @@ struct PluginSurfaceRefreshResponse {
     plugin_surface_urls: Option<HashMap<String, String>>,
 }
 
-#[cfg(any(target_os = "linux", test))]
+#[cfg(any(target_os = "linux", target_os = "android", test))]
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct SuspendPrepareResponse {
@@ -201,7 +201,7 @@ struct SuspendPrepareResponse {
     suspension_id: Option<String>,
 }
 
-#[cfg(any(target_os = "linux", test))]
+#[cfg(any(target_os = "linux", target_os = "android", test))]
 impl SuspendPrepareResponse {
     fn into_outcome(self) -> SleepPrepareOutcome {
         match (self.status.as_deref(), self.suspension_id) {
@@ -213,7 +213,7 @@ impl SuspendPrepareResponse {
     }
 }
 
-#[cfg(any(target_os = "linux", test))]
+#[cfg(any(target_os = "linux", target_os = "android", test))]
 #[derive(Deserialize)]
 struct SuspendResumeResponse {
     resumed: bool,
@@ -221,7 +221,7 @@ struct SuspendResumeResponse {
 
 enum GatewayRequest {
     AgentsList,
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", target_os = "android"))]
     Desktop {
         generation: u64,
         method: DesktopMethod,
@@ -241,12 +241,12 @@ enum GatewayRequest {
         offset: Option<u64>,
         deadline: Instant,
     },
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", target_os = "android"))]
     SuspendPrepare {
         request_id: String,
         route: GatewaySleepRoute,
     },
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", target_os = "android"))]
     SuspendResume {
         suspension_id: String,
         route: GatewaySleepRoute,
@@ -260,17 +260,17 @@ impl GatewayRequest {
             Self::ChatSend { .. } => "chat.send",
             Self::RefreshCanvasSurface { .. } => "plugin.surface.refresh",
             Self::ChatHistory { .. } => "chat.history",
-            #[cfg(target_os = "linux")]
+            #[cfg(any(target_os = "linux", target_os = "android"))]
             Self::Desktop { method, .. } => method.name(),
-            #[cfg(target_os = "linux")]
+            #[cfg(any(target_os = "linux", target_os = "android"))]
             Self::SuspendPrepare { .. } => "gateway.suspend.prepare",
-            #[cfg(target_os = "linux")]
+            #[cfg(any(target_os = "linux", target_os = "android"))]
             Self::SuspendResume { .. } => "gateway.suspend.resume",
         }
     }
 }
 
-#[cfg(target_os = "linux")]
+#[cfg(any(target_os = "linux", target_os = "android"))]
 pub(crate) enum DesktopMethod {
     Agents,
     Sessions,
@@ -278,7 +278,7 @@ pub(crate) enum DesktopMethod {
     Create,
 }
 
-#[cfg(target_os = "linux")]
+#[cfg(any(target_os = "linux", target_os = "android"))]
 impl DesktopMethod {
     fn name(&self) -> &'static str {
         match self {
@@ -492,7 +492,7 @@ impl GatewayClient {
         action(&mut config)
     }
 
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", target_os = "android"))]
     pub(crate) fn desktop_state(&self) -> (u64, bool) {
         let _config = self
             .inner
@@ -505,12 +505,12 @@ impl GatewayClient {
         )
     }
 
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", target_os = "android"))]
     pub(crate) fn set_desktop_demand(&self, active: bool) {
         self.inner.desktop_demand.store(active, Ordering::SeqCst);
     }
 
-    #[cfg(any(target_os = "linux", test))]
+    #[cfg(any(target_os = "linux", target_os = "android", test))]
     pub(crate) fn with_desktop_route<T>(
         &self,
         generation: u64,
@@ -537,7 +537,7 @@ impl GatewayClient {
         action(url.as_deref())
     }
 
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", target_os = "android"))]
     pub(crate) async fn desktop_request(
         &self,
         generation: u64,
@@ -889,7 +889,7 @@ impl GatewayClient {
         })
     }
 
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", target_os = "android"))]
     pub async fn suspend_prepare(
         &self,
         request_id: String,
@@ -909,7 +909,7 @@ impl GatewayClient {
         Ok(response.into_outcome())
     }
 
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", target_os = "android"))]
     pub async fn suspend_resume(
         &self,
         suspension_id: String,
@@ -932,7 +932,7 @@ impl GatewayClient {
         Ok(response.resumed)
     }
 
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", target_os = "android"))]
     pub fn sleep_route(&self) -> Option<GatewaySleepRoute> {
         let current = self
             .inner
@@ -969,12 +969,12 @@ impl GatewayClient {
         }
     }
 
-    #[cfg(any(target_os = "linux", test))]
+    #[cfg(any(target_os = "linux", target_os = "android", test))]
     pub(crate) fn begin_sleep_cycle(&self) {
         self.inner.sleep_cycle_depth.fetch_add(1, Ordering::SeqCst);
     }
 
-    #[cfg(any(target_os = "linux", test))]
+    #[cfg(any(target_os = "linux", target_os = "android", test))]
     pub(crate) fn end_sleep_cycle(&self) {
         // Depth, not a boolean: an older wake task ending late must not park the
         // driver while a newer sleep cycle is still active. Saturate at zero so
@@ -987,7 +987,7 @@ impl GatewayClient {
                 });
     }
 
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", target_os = "android"))]
     async fn wait_for_sleep_connection(&self, route: &GatewaySleepRoute) -> Result<(), String> {
         loop {
             if self.sleep_route().as_ref() != Some(route) {
@@ -1678,7 +1678,7 @@ struct RequestDispatch {
     generation: GatewayGeneration,
     connection_generation: u64,
     deadline: Instant,
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", target_os = "android"))]
     sleep_route: Option<GatewaySleepRoute>,
 }
 
@@ -1699,7 +1699,7 @@ fn validate_request_dispatch(
     }
     let owner_changed = client.generation() != authority.generation
         || authority.connection_generation != authority.generation.0;
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", target_os = "android"))]
     if let Some(route) = authority.sleep_route.as_ref() {
         let owned = current.config.as_ref().is_some_and(|config| {
             config.ownership == GatewayOwnership::Local
@@ -1809,9 +1809,9 @@ async fn perform_session_request(
         GatewayRequest::ChatSend { generation, .. }
         | GatewayRequest::ChatHistory { generation, .. }
         | GatewayRequest::RefreshCanvasSurface { generation, .. } => *generation,
-        #[cfg(target_os = "linux")]
+        #[cfg(any(target_os = "linux", target_os = "android"))]
         GatewayRequest::Desktop { generation, .. } => GatewayGeneration(*generation),
-        #[cfg(target_os = "linux")]
+        #[cfg(any(target_os = "linux", target_os = "android"))]
         GatewayRequest::SuspendPrepare { route, .. }
         | GatewayRequest::SuspendResume { route, .. } => GatewayGeneration(route.generation),
     };
@@ -1822,13 +1822,13 @@ async fn perform_session_request(
             GatewayRequest::ChatHistory { deadline, .. } => *deadline,
             _ => deadline,
         },
-        #[cfg(target_os = "linux")]
+        #[cfg(any(target_os = "linux", target_os = "android"))]
         sleep_route: None,
     };
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", target_os = "android"))]
     let mut authority = authority;
     let params = match request {
-        #[cfg(target_os = "linux")]
+        #[cfg(any(target_os = "linux", target_os = "android"))]
         GatewayRequest::Desktop { params, .. } => params,
         GatewayRequest::AgentsList => {
             return request_snapshot_session(session, method, deadline).await
@@ -1856,12 +1856,12 @@ async fn perform_session_request(
         GatewayRequest::RefreshCanvasSurface { observed_url, .. } => {
             json!({ "surface": "canvas", "observedUrl": observed_url })
         }
-        #[cfg(target_os = "linux")]
+        #[cfg(any(target_os = "linux", target_os = "android"))]
         GatewayRequest::SuspendPrepare { request_id, route } => {
             authority.sleep_route = Some(route);
             json!({ "requestId": request_id })
         }
-        #[cfg(target_os = "linux")]
+        #[cfg(any(target_os = "linux", target_os = "android"))]
         GatewayRequest::SuspendResume {
             suspension_id,
             route,
@@ -1873,7 +1873,7 @@ async fn perform_session_request(
     request_on_session(client, session, method, params, authority).await
 }
 
-#[cfg(any(target_os = "linux", test))]
+#[cfg(any(target_os = "linux", target_os = "android", test))]
 fn is_loopback_ws_url(raw: &str) -> bool {
     let Ok(url) = Url::parse(raw) else {
         return false;
@@ -2658,7 +2658,7 @@ pub(crate) mod tests {
         }
     }
 
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", target_os = "android"))]
     #[test]
     #[ignore = "requires an isolated native X11 display and session bus"]
     fn quickchat_dispatch_rejects_route_change_after_driver_wait() {
@@ -2986,7 +2986,7 @@ esac
             }
         }
 
-        #[cfg(target_os = "linux")]
+        #[cfg(any(target_os = "linux", target_os = "android"))]
         pub(super) fn local_ws_config(ws_url: &str) -> GatewayWsConfig {
             CliFixture::new()
                 .ready(json!({
@@ -3121,7 +3121,7 @@ esac
         assert!(!driver_should_run(false, sleep_active(&client)));
     }
 
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", target_os = "android"))]
     #[tokio::test]
     async fn desktop_requests_never_retarget_across_gateway_generations() {
         let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
@@ -3212,7 +3212,7 @@ esac
             None,
             GatewayOwnership::Local,
         )));
-        #[cfg(target_os = "linux")]
+        #[cfg(any(target_os = "linux", target_os = "android"))]
         let route = client.sleep_route().expect("local sleep route");
         let generation = client.inner.config_generation.load(Ordering::SeqCst);
         let requests = [
@@ -3242,7 +3242,7 @@ esac
                 },
                 completion::<PluginSurfaceRefreshResponse>("plugin.surface.refresh"),
             ),
-            #[cfg(target_os = "linux")]
+            #[cfg(any(target_os = "linux", target_os = "android"))]
             (
                 "gateway.suspend.prepare",
                 GatewayRequest::SuspendPrepare {
@@ -3251,7 +3251,7 @@ esac
                 },
                 completion::<SuspendPrepareResponse>("gateway.suspend.prepare"),
             ),
-            #[cfg(target_os = "linux")]
+            #[cfg(any(target_os = "linux", target_os = "android"))]
             (
                 "gateway.suspend.resume",
                 GatewayRequest::SuspendResume {
@@ -3360,7 +3360,7 @@ esac
         server.abort();
     }
 
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", target_os = "android"))]
     mod sleep_route_ownership {
         use super::*;
         use crate::gateway_sleep::GatewaySleepCycleController;

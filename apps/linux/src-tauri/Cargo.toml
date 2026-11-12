@@ -59,7 +59,7 @@ zeroize = "1.9.1"
 [target.'cfg(unix)'.dependencies]
 libc = "0.2.191"
 
-[target.'cfg(target_os = "linux")'.dependencies]
+[target.'cfg(any(target_os = "linux", target_os = "android"))'.dependencies]
 cairo-rs = { version = "0.18.5", features = ["png"] }
 gtk = "0.18.2"
 webkit2gtk = { version = "2.0.2", features = ["v2_40"] }
@@ -82,3 +82,22 @@ windows = { version = "0.62.2", features = ["Win32_Foundation", "Win32_Security"
 # The windows::core::implement macro emits direct windows_core paths; keep both versions aligned.
 windows-core = "0.62.2"
 tauri-plugin-notifications = { git = "https://github.com/steipete/tauri-plugin-notifications.git", rev = "35d04a6af588a5d5d438da0320c7d95a877cfe14" }
+
+[patch.crates-io]
+tao = { path = "patched-crates/tao-termux" }
+wry = { path = "patched-crates/wry-termux" }
+tauri = { path = "patched-crates/tauri-termux" }
+tauri-runtime = { path = "patched-crates/tauri-runtime-termux" }
+tauri-runtime-wry = { path = "patched-crates/tauri-runtime-wry-termux" }
+tauri-utils = { path = "patched-crates/tauri-utils-termux" }
+muda = { path = "patched-crates/muda-termux" }
+tray-icon = { path = "patched-crates/tray-icon-termux" }
+tauri-plugin-opener = { path = "patched-crates/tauri-plugin-opener" }
+tauri-plugin-dialog = { path = "patched-crates/tauri-plugin-dialog" }
+rfd = { path = "patched-crates/rfd" }
+tauri-plugin-autostart = { path = "patched-crates/tauri-plugin-autostart" }
+tauri-plugin-global-shortcut = { path = "patched-crates/tauri-plugin-global-shortcut" }
+tauri-plugin-window-state = { path = "patched-crates/tauri-plugin-window-state" }
+tauri-plugin-single-instance = { path = "patched-crates/tauri-plugin-single-instance" }
+global-hotkey = { path = "patched-crates/global-hotkey" }
+auto-launch = { path = "patched-crates/auto-launch" }

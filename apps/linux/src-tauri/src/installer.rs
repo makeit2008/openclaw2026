@@ -197,7 +197,7 @@ fn install_at(
     #[cfg_attr(target_os = "windows", allow(unused_variables))] runtime_only: bool,
     spawn: Option<&SpawnCommand<'_>>,
 ) -> Result<(), String> {
-    #[cfg(any(target_os = "linux", target_os = "windows", target_os = "macos"))]
+    #[cfg(any(target_os = "linux", target_os = "android", target_os = "windows", target_os = "macos"))]
     if let Some((runtime, entry)) = crate::bundled_runtime::seed_cli(app, &prefix)? {
         return crate::runtime_action::install_launcher(
             &prefix,

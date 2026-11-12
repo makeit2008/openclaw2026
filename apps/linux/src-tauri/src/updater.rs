@@ -478,7 +478,7 @@ fn begin_check(app: &AppHandle) -> Option<CheckGuard> {
 }
 
 fn install_kind() -> InstallKind {
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", target_os = "android"))]
     let platform = Platform::Linux;
     #[cfg(target_os = "macos")]
     let platform = Platform::Macos;

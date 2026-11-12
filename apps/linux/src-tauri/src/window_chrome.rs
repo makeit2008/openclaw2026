@@ -32,11 +32,11 @@ struct HistoryState {
 }
 
 pub fn install(window: &Window) -> tauri::Result<()> {
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", target_os = "android"))]
     return crate::window_chrome_linux::install(window);
     #[cfg(target_os = "macos")]
     return crate::window_chrome_macos::set_unified(window, false);
-    #[cfg(not(any(target_os = "linux", target_os = "macos")))]
+    #[cfg(not(any(target_os = "linux", target_os = "android", target_os = "macos")))]
     {
         let _ = window;
         Ok(())
@@ -85,7 +85,7 @@ fn state(window: &Window) -> Result<WindowState, String> {
 }
 
 pub fn publish(window: &Window) {
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", target_os = "android"))]
     {
         let app = window.app_handle().clone();
         let label = window.label().to_string();
@@ -97,7 +97,7 @@ pub fn publish(window: &Window) {
             }
         });
     }
-    #[cfg(not(target_os = "linux"))]
+    #[cfg(not(any(target_os = "linux", target_os = "android")))]
     publish_current(window);
 }
 

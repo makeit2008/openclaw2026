@@ -3,7 +3,7 @@ use crate::quickchat::{
     position_quickchat, require_quickchat_webview, QuickChatState, QUICKCHAT_COMPACT_WINDOW_HEIGHT,
     QUICKCHAT_TEXT_WINDOW_HEIGHT, QUICKCHAT_WIDGET_WINDOW_HEIGHT, QUICKCHAT_WIDTH,
 };
-#[cfg(target_os = "linux")]
+#[cfg(any(target_os = "linux", target_os = "android"))]
 use gtk::prelude::*;
 use serde::Deserialize;
 use sha2::{Digest, Sha256};
@@ -22,7 +22,7 @@ const QUICKCHAT_WIDGET_LABEL_PREFIX: &str = "quickchat-widget-";
 const QUICKCHAT_WIDGET_MAX_COUNT: usize = 32;
 const QUICKCHAT_WIDGET_MAX_URL_BYTES: usize = 4096;
 
-#[cfg(target_os = "linux")]
+#[cfg(any(target_os = "linux", target_os = "android"))]
 mod compact_content {
     use gtk::glib;
     use gtk::subclass::prelude::*;
@@ -59,7 +59,7 @@ mod compact_content {
     impl BoxImpl for Content {}
 }
 
-#[cfg(target_os = "linux")]
+#[cfg(any(target_os = "linux", target_os = "android"))]
 gtk::glib::wrapper! {
     pub struct QuickChatContent(ObjectSubclass<compact_content::Content>)
         @extends gtk::Box, gtk::Container, gtk::Widget,
@@ -142,7 +142,7 @@ async fn on_main_thread<T: Send + 'static>(
         .map_err(|_| "Quick Chat closed before its widget update.".to_string())?
 }
 
-#[cfg(target_os = "linux")]
+#[cfg(any(target_os = "linux", target_os = "android"))]
 async fn with_gtk_widget(
     webview: &Webview,
     update: impl FnOnce(gtk::Widget) -> Result<(), String> + Send + 'static,
@@ -158,7 +158,7 @@ async fn with_gtk_widget(
         .map_err(|_| "Quick Chat native view closed before layout completed.".to_string())?
 }
 
-#[cfg(target_os = "linux")]
+#[cfg(any(target_os = "linux", target_os = "android"))]
 async fn prepare_widget_surface(webview: &Webview) -> Result<(), String> {
     let app = webview.app_handle().clone();
     with_gtk_widget(webview, move |primary| {
@@ -221,7 +221,7 @@ async fn set_widget_bounds(
     position: LogicalPosition<f64>,
     size: LogicalSize<f64>,
 ) -> Result<(), String> {
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", target_os = "android"))]
     return with_gtk_widget(webview, move |widget| {
         crate::native_browser_platform::set_gtk_child_bounds(
             &widget,
@@ -236,7 +236,7 @@ async fn set_widget_bounds(
         )
     })
     .await;
-    #[cfg(not(target_os = "linux"))]
+    #[cfg(not(any(target_os = "linux", target_os = "android")))]
     {
         webview
             .set_position(position)
@@ -319,7 +319,7 @@ impl QuickChatWidgetState {
             })?;
         }
         Self::close_views(window.app_handle(), &mut state.views, true)?;
-        #[cfg(target_os = "linux")]
+        #[cfg(any(target_os = "linux", target_os = "android"))]
         prepare_widget_surface(webview).await?;
         state.active_session = Some(RendererSession {
             id: session_id.to_string(),
@@ -882,7 +882,7 @@ mod tests {
         assert!(!same_widget_document(&userinfo_url, &allowed));
     }
 
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", target_os = "android"))]
     #[test]
     #[ignore = "requires an isolated native X11 display and session bus"]
     fn native_children_revalidate_gateway_before_create_and_show() {

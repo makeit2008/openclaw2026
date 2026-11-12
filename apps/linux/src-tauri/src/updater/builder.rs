@@ -60,7 +60,7 @@ pub(super) fn updater_builder(app: &AppHandle) -> tauri_plugin_updater::Result<U
     let builder = app
         .updater_builder()
         .version_comparator(|current, candidate| release_is_newer(&current, &candidate.version));
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", target_os = "android"))]
     let builder = Ok(builder);
     #[cfg(target_os = "macos")]
     let builder = builder.endpoints(vec![DESKTOP_TEST_UPDATE_ENDPOINT

@@ -68,7 +68,7 @@ impl Drop for Fixture {
 }
 
 fn write_source(source: &Path, bytes: &[u8]) {
-    let encoded = if cfg!(target_os = "linux") {
+    let encoded = if cfg!(any(target_os = "linux", target_os = "android")) {
         [LINUX_RESOURCE_PREFIX, bytes].concat()
     } else {
         bytes.to_vec()
@@ -88,7 +88,7 @@ fn publishes_nested_package_bytes_and_rejects_modified_or_traversing_resources()
         let output = fixture.source.join(file);
         fs::create_dir_all(output.parent().unwrap()).unwrap();
         let content = b"synthetic package bytes";
-        let bytes = if cfg!(target_os = "linux") {
+        let bytes = if cfg!(any(target_os = "linux", target_os = "android")) {
             [LINUX_RESOURCE_PREFIX, content].concat()
         } else {
             content.to_vec()
@@ -267,11 +267,11 @@ fn unreadable_processes_or_references_prune_nothing() {
     assert!(current.executable.is_file());
 }
 
-#[cfg(any(target_os = "linux", target_os = "windows"))]
+#[cfg(any(target_os = "linux", target_os = "android", target_os = "windows"))]
 #[test]
 fn running_seed_is_retained_until_the_process_exits() {
     let mut fixture = Fixture::new();
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", target_os = "android"))]
     let executable = PathBuf::from("/bin/cat");
     #[cfg(target_os = "windows")]
     let executable =
@@ -316,10 +316,10 @@ fn running_seed_is_retained_until_the_process_exits() {
         }
     }
     let current = fixture.next_seed("current");
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", target_os = "android"))]
     let pid = child.id();
     let collect = || {
-        #[cfg(target_os = "linux")]
+        #[cfg(any(target_os = "linux", target_os = "android"))]
         return retention::collect(&fixture.prefix, &[current.executable.clone()], &|_| {
             // The hosted runner can hide unrelated processes; inspect only this owned fixture.
             Ok(
@@ -356,7 +356,7 @@ fn rejects_modified_source_and_installed_payload_without_overwriting() {
     );
 }
 
-#[cfg(target_os = "linux")]
+#[cfg(any(target_os = "linux", target_os = "android"))]
 #[test]
 fn rejects_corrupted_missing_or_truncated_resource_envelope() {
     let fixture = Fixture::new();
@@ -507,7 +507,7 @@ fn aot_fixture() -> Fixture {
     ];
     let mut inventory = BTreeMap::new();
     for (name, bytes) in files {
-        let resource = if cfg!(target_os = "linux") {
+        let resource = if cfg!(any(target_os = "linux", target_os = "android")) {
             [LINUX_RESOURCE_PREFIX, bytes].concat()
         } else {
             bytes.to_vec()
